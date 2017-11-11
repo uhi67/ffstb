@@ -36,16 +36,15 @@ Linux:
 ffstb.php <filenames> <options>
 ```
 
-`<filename>`	file or directory to stabilize
-`<option>`
-
-	-h	display help
-	-o	overwrite existing results
-	-r	recurse subdirectories (if an input directory is given)
-	-k	keep temporary files
-	-x=ext	output file extension (default is mp4)
-	-s=filename	use stabilize settings from this file (default ./ffstb.set is used)
-	-f=path	name of the ffmpeg command. Default is ffmpeg
+- `<filename>`:	file or directory to stabilize
+- `<option>`:
+	* -h	display help
+	* -o	overwrite existing results
+	* -r	recurse subdirectories (if an input directory is given)
+	* -k	keep temporary files
+	* -x=ext	output file extension (default is mp4)
+	* -s=filename	use stabilize settings from this file (default ./ffstb.set is used)
+	* -f=path	name of the ffmpeg command. Default is ffmpeg
 
 The script will process all given files or files in directories.
 The output files will be created in the same directory with name extended with '.stb' and output extension.
