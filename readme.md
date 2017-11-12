@@ -25,6 +25,8 @@ hash -r
 2. Place php script to your script directory, and set path environment variable if needed.
 3. Customize ffstb.set if needed. In ubuntu, change `ffmpeg` value to `ffmpeg2`
 
+See also [https://github.com/georgmartius/vid.stab](https://github.com/georgmartius/vid.stab).
+
 Usage
 -----
 Windows:
@@ -45,6 +47,7 @@ ffstb.php <filenames> <options>
 	* -x=ext	output file extension (default is mp4)
 	* -s=filename	use stabilize settings from this file (default ./ffstb.set is used)
 	* -f=path	name of the ffmpeg command. Default is ffmpeg
+	* -t=n		Maximum number of paralel threads (if multiple files are processed)
 
 The script will process all given files or files in directories.
 The output files will be created in the same directory with name extended with '.stb' and output extension.
@@ -65,18 +68,18 @@ The available settings with absolute defaults are:
 	ffmpeg=ffmpeg	# name of ffmpeg command. May be overridden with -x in command line
 					# In ubuntu systems it may have to be 'ffmpeg2'
 	exts=avi,m2t,mov,mpg,mpeg,mp2,mp4,mts
+	threads=3		# Maximum number of paralel threads
 
 ### detect settings
 	
-	stepsize=6
-	shakiness=8
-	accuracy=9
+	stepsize=6		# Set stepsize of the search process. 
+	shakiness=8		# Set the shakiness of input video or quickness of camera. (1-10)
+	accuracy=9		# Set the accuracy of the detection process. It must be a value in the range 1-15. 1 is the lowest.
 	
 ### transform settings
 
-	zoom=1
-	smoothing=30
-	unsharp=5:5:0.8:3:3:0.4	
+	zoom=1			# Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.
+	smoothing=30	# Set the number of frames (value*2 + 1), used for lowpass filtering the camera movements. 
 	
 ### ffmpeg settings
 
@@ -85,3 +88,4 @@ The available settings with absolute defaults are:
 	tune=film 
 	crf=18 
 	acodec=copy
+	unsharp=5:5:0.8:3:3:0.4	
