@@ -3,7 +3,7 @@ ffstb
 ffmpeg batch stabilizer script
 ------------------------------
 
-version 0.1
+version 0.2
 (Not all described options are working)
 
 Install
@@ -38,16 +38,28 @@ Linux:
 ffstb.php <filenames> <options>
 ```
 
-- `<filename>`:	file or directory to stabilize
-- `<option>`:
-	* -h	display help
-	* -o	overwrite existing results
-	* -r	recurse subdirectories (if an input directory is given)
-	* -k	keep temporary files
-	* -x=ext	output file extension (default is mp4)
-	* -s=filename	use stabilize settings from this file (default ./ffstb.set is used)
-	* -f=path	name of the ffmpeg command. Default is ffmpeg
-	* -t=n		Maximum number of paralel threads (if multiple files are processed)
+filenames may be multiple filenames or directories to stabilize
+
+### Options
+
+#### -h	
+	display help
+#### -v num	
+	verbose mode, 0=quiet, 1=basic, 2=detailed, 3=with ffmpeg progress
+####-o
+	overwrite existing results
+####-r
+	recurse subdirectories (if an input directory is given)
+####-k
+	keep temporary files
+####-x ext
+	output file extension (default is mp4)
+####-s filename
+	use stabilize settings from this file (default ./ffstb.set is used)
+####-f path
+	name of the ffmpeg command. Default is ffmpeg
+####-t n
+	Maximum number of paralel threads (if multiple files are processed)
 
 The script will process all given files or files in directories.
 The output files will be created in the same directory with name extended with '.stb' and output extension.
@@ -62,30 +74,37 @@ The available settings with absolute defaults are:
 ### script settings
 
 	overwrite=no	# Overwrite existing output. May be overridden with -o in command line
-	recurse=no		# Recurse subdirectories. May be overridden with -r in command line
-	keep=no			# Keep temporary files. May be overridden with -k in command line
-	outx=mp4		# Output file extension. May be overridden with -x in command line
+	recurse=no	# Recurse subdirectories. May be overridden with -r in command line
+	keep=no		# Keep temporary files. May be overridden with -k in command line
+	outx=mp4	# Output file extension. May be overridden with -x in command line
 	ffmpeg=ffmpeg	# name of ffmpeg command. May be overridden with -x in command line
-					# In ubuntu systems it may have to be 'ffmpeg2'
+			# In ubuntu systems it may have to be 'ffmpeg2'
 	exts=avi,m2t,mov,mpg,mpeg,mp2,mp4,mts
-	threads=3		# Maximum number of paralel threads
+	threads=3	# Maximum number of paralel threads
 
 ### detect settings
 	
-	stepsize=6		# Set stepsize of the search process. 
-	shakiness=8		# Set the shakiness of input video or quickness of camera. (1-10)
-	accuracy=9		# Set the accuracy of the detection process. It must be a value in the range 1-15. 1 is the lowest.
+	stepsize=6	# Set stepsize of the search process. 
+	shakiness=8	# Set the shakiness of input video or quickness of camera. (1-10)
+	accuracy=9	# Set the accuracy of the detection process. It must be a value in the range 1-15. 1 is the lowest.
 	
 ### transform settings
 
-	zoom=1			# Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.
+	zoom=1		# Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.
+	optzoom=1	# Set optimal zooming to avoid blank-borders. 0:disabled, 1=optimal, 2=adaptive
+	zoomspeed=0.25	# Set percent of max zoom per frame if adaptive zoom enabled. Range is from 0 to 5, default is 0.25.
 	smoothing=30	# Set the number of frames (value*2 + 1), used for lowpass filtering the camera movements. 
 	
 ### ffmpeg settings
 
 	vcodec=libx264 
-	preset=slow 
-	tune=film 
-	crf=18 
-	acodec=copy
-	unsharp=5:5:0.8:3:3:0.4	
+	preset=slow 	# Encoding options preset
+	tune=film	# Fine tune settings to various inputs
+	crf=17 		# Quality factor (0-51), 0 is the best, 17 is visually lossless
+	acodec=mp3
+	unsharp=5:5:0.8:3:3:0.4		# unsharp filter luma_x:luma_y:luma_sh:chroma_x:chroma_y:chroma_sharp
+	filter		# Multiple filter options are appended to -vf option of pass 2
+
+### User settings
+
+Any other option=value pair will be applied to pass 2 as `-option value`

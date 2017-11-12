@@ -55,9 +55,11 @@ $settings = array(
 
 	'stepsize' => array(SET_DETECT, 6,	'Set stepsize of the search process.'),
 	'shakiness' => array(SET_DETECT, 8,	'Set the shakiness of input video or quickness of camera. (1-10))'),
-	'accuracy' => array(SET_DETECT, 9,	'Set the accuracy of the detection process. It must be a value in the range 1-15. 1 is the lowest.'),
+	'accuracy' => array(SET_DETECT, 9,	'Set the accuracy of the detection process. Range is 1-15; 1 is the lowest.'),
 
-	'zoom' => array(SET_TRANSFORM, 1, 'Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.'),
+	'zoom' => array(SET_TRANSFORM, 0, 'Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.'),
+	'optzoom' => array(SET_TRANSFORM, 'default', 'Set optimal zooming to avoid blank-borders. 0:disabled, 1=optimal, 2=adaptive'),
+	'zoomspeed' => array(SET_TRANSFORM, 'default', 'Set percent of max zoom per frame if adaptive zoom enabled. Range is from 0 to 5, default is 0.25.'),
 	'smoothing' => array(SET_TRANSFORM, 30, 'Set the number of frames (value*2 + 1), used for lowpass filtering the camera movements.'),
 
 	'vcodec' => array(SET_FFMPEG, 'libx264', 'Video codec'),
@@ -250,6 +252,8 @@ function stabFile($filename) {
 	$ffmpeg = $options['ffmpeg'];
 	$filters = $options['filters'];
 	if($options['unsharp']) $filters = ',unsharp='.$options['unsharp'];
+	$optzoom = $options['optzoom']!='default' ? 'optzoom='.$options['optzoom'].':' : '';
+	$zoomspeed = $options['zoomspeed']!='default' ? 'zoomspeed='.$options['zoomspeed'].':' : '';
 	$quiet = '';
 	if($verbose==0) $quiet = ' -loglevel fatal ';
 	if($verbose==1) $quiet = ' -loglevel error ';
@@ -257,7 +261,7 @@ function stabFile($filename) {
 	if($verbose==3) $quiet = ' -hide_banner';
 	
 	$detectcommand = "$ffmpeg $quiet -i $filename -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile -f null -";
-	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform=input=$tempfile:zoom=${options['zoom']}:smoothing=${options['smoothing']}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} $outfile";
+	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform=input=$tempfile:zoom=${options['zoom']}:{$optzoom}{$zoomspeed}smoothing=${options['smoothing']}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} $outfile";
 	$output = array();
 	if($verbose>2) echo $detectcommand."\n";
 	echo exec($detectcommand, $output), "\n";

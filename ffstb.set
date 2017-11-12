@@ -21,6 +21,8 @@ accuracy=9		# Set the accuracy of the detection process. It must be a value in t
 # transform settings
 
 zoom=0			# Percentage of additional zoom. A positive value will result in a zoom-in effect. 0=noo zoom.
+optzoom=default		# Set optimal zooming to avoid blank-borders. 0:disabled, 1=optimal, 2=adaptive
+zoomspeed=default	# Set percent of max zoom per frame if adaptive zoom enabled. Range is from 0 to 5, default is 0.25.
 smoothing=30	# Set the number of frames (value*2 + 1), used for lowpass filtering the camera movements. 
 	
 # ffmpeg settings
