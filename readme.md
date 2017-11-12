@@ -11,16 +11,19 @@ Install
 
 1. Install ffmpeg with vidstab library. See [http://ffmpeg.org/](http://ffmpeg.org/)
 
-    - Windows binary contains vidstab.
-    - In Ubuntu Trusty 16.04
+    - Windows:
+
+Windows binary contains vidstab.
+
+    - In Ubuntu Trusty 16.04:
 ```
 sudo add-apt-repository ppa:mc3man/ffmpeg-test
 sudo apt-get update
 sudo apt-get install ffmpeg-static
 hash -r
 ```
-    Now ffmpeg2 is the new command (note the "2").
-    [More details see at Doug McMahon](https://launchpad.net/~mc3man/+archive/ubuntu/ffmpeg-test)
+Now ffmpeg2 is the new command (note the "2").
+[More details see at Doug McMahon](https://launchpad.net/~mc3man/+archive/ubuntu/ffmpeg-test)
 
 2. Place php script to your script directory, and set path environment variable if needed.
 3. Customize ffstb.set if needed. In ubuntu, change `ffmpeg` value to `ffmpeg2`
@@ -38,7 +41,7 @@ Linux:
 ffstb.php <filenames> <options>
 ```
 
-filenames may be multiple filenames or directories to stabilize
+filenames may be multiple filenames or directories to stabilize all matched files within.
 
 ### Options
 
@@ -46,28 +49,28 @@ filenames may be multiple filenames or directories to stabilize
 	display help
 #### -v num	
 	verbose mode, 0=quiet, 1=basic, 2=detailed, 3=with ffmpeg progress
-####-o
+#### -o
 	overwrite existing results
-####-r
+#### -r
 	recurse subdirectories (if an input directory is given)
-####-k
+#### -k
 	keep temporary files
-####-x ext
+#### -x ext
 	output file extension (default is mp4)
-####-s filename
+#### -s filename
 	use stabilize settings from this file (default ./ffstb.set is used)
-####-f path
+#### -f path
 	name of the ffmpeg command. Default is ffmpeg
-####-t n
+#### -t n
 	Maximum number of paralel threads (if multiple files are processed)
 
-The script will process all given files or files in directories.
+The script will process all given files and/or matched files (see exts option) in given directories.
 The output files will be created in the same directory with name extended with '.stb' and output extension.
 	
 Settings in .set file
 ---------------------
-Global default settings may be set in ffstb.set in the directory of the script.
-Settings for an input directory may be overridden with an ffstb.set file in it.
+Global default settings may be set in file `ffstb.set` in the directory of the script.
+Settings for an input directory may be overridden with an `ffstb.set` file in it.
 Lines or line endings beginning with # are comments.
 The available settings with absolute defaults are:
 

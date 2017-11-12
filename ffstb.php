@@ -198,6 +198,7 @@ function addFileOrDir($filename) {
 				while (($file = readdir($dh)) !== false) {
 					$dot = strrpos($file, '.');
 					$ext = $dot===false ? '' : strtolower(substr($file, $dot+1));
+					if(strpos($file, '.stb.')) continue;
 					if(in_array($ext, $exts)) {
 						if(file_exists($filename.'/'.$file)) {
 							addFile($filename.'/'.$file);
