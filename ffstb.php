@@ -366,7 +366,8 @@ function showStat() {
 	}
 	$speed = $time_ready ? floor($size_ready / $time_ready) : 0; // byte/s
 	$estimated = $speed ? floor($size_all / $speed) : 0; // estimated full time in s
-	$finish = $now->add(new DateInterval('PT'.$estimated.'S'));
+	$finish = clone $now;
+	$finish->add(new DateInterval('PT'.$estimated.'S'));
 	$estint = $finish->diff($starttime);
 	
 	echo "---------------------------------------------------------------------\n";
