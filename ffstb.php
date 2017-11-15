@@ -169,12 +169,14 @@ const STATUS_SKIP=4;	// file skipped (processed before this session)
 
 // Collects all filenames to process
 $jobs = array(); // array of [path, status, size, time] where status is STATUS_XXX
+$skip = 0;
 foreach($filenames as $filename) {
 	addFileOrDir($filename);
 }
+if($verbose==1 && $skip) echo "Skipping $skip existing file(s)\n";
 
 // Process all files in the $jobs
-$starttime = time();
+$starttime = new DateTime();
 foreach($jobs as &$job) {
 	if($verbose>1) showStat();
 	$t1 = time();
@@ -218,13 +220,14 @@ function addFileOrDir($filename) {
 }
 
 function addFile($filename) {
-	global $options, $jobs, $verbose;
+	global $options, $jobs, $verbose, $skip;
 	$trf = $options['trf'];
 	$outx = $options['xout'];
-	$outfile = $filename.'.'.$outx;
+	$outfile = $filename.'.stb.'.$outx;
 	$tempfile = $filename.'.'.$trf;
 	if(file_exists($outfile) && !$options['overwrite']) {
 		if($verbose) echo "Output exists, skipping `$filename`\n";
+		$skip++;
 		return false;
 	}
 	else {
@@ -247,7 +250,10 @@ function stabFile($filename) {
 	$outfile = $filename.'.stb.'.$outx;
 	$tempfile = $filename.'.'.$trf;
 
-	if(file_exists($outfile)) unlink($outfile);
+	if(file_exists($outfile)) {
+		if($verbose) echo "Overwriting `$outfile`\n";
+		unlink($outfile);
+	}
 	if(file_exists($tempfile)) unlink($tempfile);
 	if($verbose) echo "Processing `$filename`\n";
 	$ffmpeg = $options['ffmpeg'];
@@ -258,8 +264,8 @@ function stabFile($filename) {
 	$quiet = '';
 	if($verbose==0) $quiet = ' -loglevel fatal ';
 	if($verbose==1) $quiet = ' -loglevel error ';
-	if($verbose==2) $quiet = ' -loglevel warning -stats';
-	if($verbose==3) $quiet = ' -hide_banner';
+	if($verbose==2) $quiet = ' -loglevel warning ';
+	if($verbose==3) $quiet = ' -hide_banner ';
 	
 	$detectcommand = "$ffmpeg $quiet -i $filename -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile -f null -";
 	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform=input=$tempfile:zoom=${options['zoom']}:{$optzoom}{$zoomspeed}smoothing=${options['smoothing']}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} $outfile";
@@ -346,7 +352,8 @@ function showStat() {
 	$ready = 0;
 	$prog = 0;
 	$fail = 0;
-	$elapsed = time() - $starttime;
+	$now = new DateTime();
+	$elapsed = $now->diff($starttime);
 	$size_all = 0;
 	$size_ready = 0;
 	$time_ready = 0;
@@ -358,11 +365,14 @@ function showStat() {
 		$size_all += $job[2];
 	}
 	$speed = $time_ready ? floor($size_ready / $time_ready) : 0; // byte/s
-	$estimated = $speed ? $size_all / $speed : 0; // estimated full time in s
+	$estimated = $speed ? floor($size_all / $speed) : 0; // estimated full time in s
+	$finish = $now->add(new DateInterval('PT'.$estimated.'S'));
+	$estint = $finish->diff($starttime);
+	
 	echo "---------------------------------------------------------------------\n";
 	if($files) echo sprintf("$ready of $files are completed (%.1f %%).\n", $ready / $files * 100);
 	else echo "No files specified or found\n";
-	if($estimated) echo sprintf("%s of estimated %s time elapsed (%.1f %%).\n", date('H:i:s', $elapsed), date('H:i:s', $estimated), $elapsed / $estimated * 100);
+	if($estimated) echo sprintf("Elapsed %s of expected %s (%.1f %%).\n", $elapsed->format('%ad %H:%I:%S'), $estint->format('%ad %H:%I:%S'), ($now->getTimestamp() - $starttime->getTimeStamp()) / $estimated * 100);
 	echo sprintf("%s of %s processed at speed %s/s\n", sizeformat($size_ready), sizeformat($size_all), sizeformat($speed));
 	echo "$fail files failed\n";
 }
@@ -371,4 +381,9 @@ function sizeformat($bytes, $decimals = 1) {
   $sz = 'BKMGTP';
   $factor = floor((strlen($bytes) - 1) / 3);
   return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
+}
+
+function intervalformat($secs) {
+	$int = new DateInterval('PT'.$secs.'S');
+	return $int->format('%ad %H:%I:%S');
 }
