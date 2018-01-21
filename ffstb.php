@@ -21,6 +21,7 @@ $argv[0] <options> <settings> <filenames>
 	-s <file>	use stabilize settings from this file (default ./ffstb.set is used)
 	-f <path>	name of the ffmpeg command. Default is ffmpeg
 	-t <num>	maximum number of threads (not ready)
+	-p <pattern> RegEx pattern to specify input filenames
 	
 Settings in .set file
 ---------------------
@@ -52,6 +53,7 @@ $settings = array(
 	'exts' => array(SET_SCRIPT, 'avi,m2t,mov,mpg,mpeg,mp2,mp4,mts', 'Extensions to process in directories. May be overridden with -e in command line'),
 	'threads' => array(SET_SCRIPT, 3, 'Maximum number of paralel threads (if multiple files are processed) May be overridden with -t in command line'),
 	'trf' => array(SET_SCRIPT, 'trf', 'Extension of temporary move detection file'),
+	'pattern' => array(SET_SCRIPT, '', 'RegEx pattern to specify additional input filenames (applied only on current directory, not recursive)'),
 
 	'stepsize' => array(SET_DETECT, 6,	'Set stepsize of the search process.'),
 	'shakiness' => array(SET_DETECT, 8,	'Set the shakiness of input video or quickness of camera. (1-10))'),
@@ -158,6 +160,19 @@ if($verbose>2 || $help) {
 				echo "  $s=$sv\t# $sh\n";
 			}
 		}
+	}
+}
+
+// Collecting files by input pattern
+if(isset($options['pattern'])) {
+	$pattern = $options['pattern'];
+	if($pattern) {
+		$valid = (@preg_match($pattern, null) !== false);
+		if($valid) {
+			$filenames = array_merge($filenames, array_filter(scandir('.'), function($item) use($pattern) { return preg_match($pattern, $item); }));
+			if($verbose>=2) printf("\nFiles: %s\n\n", implode(', ', $filenames));
+		}
+		else echo "\nInvalid pattern!\n\n";
 	}
 }
 
@@ -268,7 +283,7 @@ function stabFile($filename) {
 	if($verbose==3) $quiet = ' -hide_banner ';
 	
 	$detectcommand = "$ffmpeg $quiet -i $filename -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile -f null -";
-	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform=input=$tempfile:zoom=${options['zoom']}:{$optzoom}{$zoomspeed}smoothing=${options['smoothing']}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} $outfile";
+	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform=input=$tempfile:zoom=${options['zoom']}:{$optzoom}{$zoomspeed}smoothing=${options['smoothing']}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} -x264-params keyint=48:no-scenecut $outfile";
 	$output = array();
 	if($verbose>2) echo $detectcommand."\n";
 	echo exec($detectcommand, $output), "\n";
@@ -375,7 +390,7 @@ function showStat() {
 	else echo "No files specified or found\n";
 	if($estimated) echo sprintf("Elapsed %s of expected %s (%.1f %%).\n", $elapsed->format('%ad %H:%I:%S'), $estint->format('%ad %H:%I:%S'), ($now->getTimestamp() - $starttime->getTimeStamp()) / $estimated * 100);
 	echo sprintf("%s of %s processed at speed %s/s\n", sizeformat($size_ready), sizeformat($size_all), sizeformat($speed));
-	echo "$fail files failed\n";
+	if($fail) echo "$fail files failed\n";
 }
 
 function sizeformat($bytes, $decimals = 1) {
