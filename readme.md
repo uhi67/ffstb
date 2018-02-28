@@ -20,7 +20,7 @@ See [http://ffmpeg.org/](http://ffmpeg.org/)
 
 - Windows:
 
-Windows binary already contains vidstab.
+Windows binary already contains *vidstab*.
 
 - In Ubuntu Trusty 16.04:
 
@@ -123,7 +123,7 @@ The available settings with absolute defaults are:
 
 Any other option=value pair will be applied to pass 2 as `-option value`
 
-Licence
+License
 -------
 Copyright (c) 2017 Uherkovich Péter
 Lecensed under GNU General Public License v3.0
@@ -135,6 +135,6 @@ You should have received a copy of the GNU General Public License along with thi
 References
 ----------
 
-[http://ffmpeg.org/](http://ffmpeg.org/)
-[More details see at Doug McMahon](https://launchpad.net/~mc3man/+archive/ubuntu/ffmpeg-test)
-[https://github.com/georgmartius/vid.stab](https://github.com/georgmartius/vid.stab).
+- [http://ffmpeg.org/](http://ffmpeg.org/)
+- [More details see at Doug McMahon](https://launchpad.net/~mc3man/+archive/ubuntu/ffmpeg-test)
+- [https://github.com/georgmartius/vid.stab](https://github.com/georgmartius/vid.stab).
