@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 $title = <<<EOT
-ffsb v0.2 - ffmpeg batch stabilizer script
+ffsb v1.0 - ffmpeg batch stabilizer script
 ==========================================
 
 EOT;
@@ -90,12 +90,13 @@ $default_set = dirname(__FILE__).'/ffstb.set';
 if(file_exists($default_set)) loadSettings($default_set);
 
 $filenames = array();
+
 for($i=1; $i<$argc; $i++) {
 	$p = $argv[$i];
 	if($e=strpos($p, '=')) {
 		$o = substr($p,0,$e);
 		$v = substr($p,$e+1);
-		if(substr($o,0,1)=='-') $o=substr($p,1);
+		if(substr($o,0,1)=='-') $o=substr($o,1);
 		foreach($settings as $k=>$vv) {
 			if(substr($k,0,strlen($o))==$o) {
 				$settings[$k][1] = $v;
@@ -111,7 +112,9 @@ for($i=1; $i<$argc; $i++) {
 					$settings[$k][1] = true;
 				}
 				else {
-					$settings[$k][1] = $argv[++$i];
+					$i++;
+					if(!isset($argv[$i])) { echo "Option $o needs an argument.\n"; exit; }
+					else $settings[$k][1] = $argv[$i];
 				}
 				break;
 			}
@@ -206,7 +209,7 @@ exit;
 
 #--------------------------------------------------
 function addFileOrDir($filename) {
-	global $options, $jobs, $verbose;
+	global $options, $verbose;
 	$exts = explode(',', $options['exts']);
 	if(file_exists($filename)) {
 		if(is_dir($filename)) {
@@ -272,7 +275,7 @@ function stabFile($filename) {
 	if(file_exists($tempfile)) unlink($tempfile);
 	if($verbose) echo "Processing `$filename`\n";
 	$ffmpeg = $options['ffmpeg'];
-	$filters = $options['filters'];
+	$filters = $options['filters'] ? ','.$options['filters'] : '';
 	if($options['unsharp']) $filters = ',unsharp='.$options['unsharp'];
 	$optzoom = $options['optzoom']!='default' ? 'optzoom='.$options['optzoom'].':' : '';
 	$zoomspeed = $options['zoomspeed']!='default' ? 'zoomspeed='.$options['zoomspeed'].':' : '';
@@ -360,6 +363,9 @@ function loadSettings($filename) {
 	}
 }
 
+/**
+ * @throws Exception
+ */
 function showStat() {
 	// array of [path, status, size, time]
 	global $jobs, $starttime;
@@ -395,11 +401,6 @@ function showStat() {
 
 function sizeformat($bytes, $decimals = 1) {
   $sz = 'BKMGTP';
-  $factor = floor((strlen($bytes) - 1) / 3);
+  $factor = (int)floor((strlen($bytes) - 1) / 3);
   return sprintf("%.{$decimals}f", $bytes / pow(1024, $factor)) . @$sz[$factor];
-}
-
-function intervalformat($secs) {
-	$int = new DateInterval('PT'.$secs.'S');
-	return $int->format('%ad %H:%I:%S');
 }

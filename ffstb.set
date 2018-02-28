@@ -30,7 +30,7 @@ smoothing=30	# Set the number of frames (value*2 + 1), used for lowpass filterin
 vcodec=libx264 
 preset=slow 	# Encoding options preset
 tune=film 		# Fine tune settings to various inputs
-crf=18 			# Quality factor (0-51), 0 is the best, 17 is visually lossless
+crf=17 			# Quality factor (0-51), 0 is the best, 17 is visually lossless
 acodec=copy
 unsharp=5:5:0.8:3:3:0.4	# unsharp filter luma_x:luma_y:luma_sh:chroma_x:chroma_y:chroma_sharp
 

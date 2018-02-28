@@ -3,30 +3,37 @@ ffstb
 ffmpeg batch stabilizer script
 ------------------------------
 
-version 0.2
-(Not all described options are working)
+A wrapper script for ffmpeg and vidstab plugin.
+
+version 1.0
+
 
 Install
 -------
 
-1. Install ffmpeg with vidstab library. See [http://ffmpeg.org/](http://ffmpeg.org/)
+### 1. Install ffmpeg with vidstab library. 
+See [http://ffmpeg.org/](http://ffmpeg.org/)
 
-    - Windows:
+- Windows:
 
-Windows binary contains vidstab.
+Windows binary already contains vidstab.
 
-    - In Ubuntu Trusty 16.04:
+- In Ubuntu Trusty 16.04:
+
 ```
 sudo add-apt-repository ppa:mc3man/ffmpeg-test
 sudo apt-get update
 sudo apt-get install ffmpeg-static
 hash -r
 ```
-Now ffmpeg2 is the new command (note the "2").
-[More details see at Doug McMahon](https://launchpad.net/~mc3man/+archive/ubuntu/ffmpeg-test)
 
-2. Place php script to your script directory, and set path environment variable if needed.
-3. Customize ffstb.set if needed. In ubuntu, change `ffmpeg` value to `ffmpeg2`
+Now ffmpeg2 is the new command (note the "2").
+
+More details [see at Doug McMahon](https://launchpad.net/~mc3man/+archive/ubuntu/ffmpeg-test)
+
+### 2. Place php script to your script directory, and set path environment variable if needed.
+### 3. Customize ffstb.set if needed 
+In ubuntu, change `ffmpeg` value to `ffmpeg2`
 
 See also [https://github.com/georgmartius/vid.stab](https://github.com/georgmartius/vid.stab).
 
@@ -111,3 +118,19 @@ The available settings with absolute defaults are:
 ### User settings
 
 Any other option=value pair will be applied to pass 2 as `-option value`
+
+Licence
+-------
+Copyright (c) 2017 Uherkovich Péter
+Lecensed under GNU General Public License v3.0
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 or any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with this program. If not, see http://www.gnu.org/licenses/
+
+References
+----------
+
+[http://ffmpeg.org/](http://ffmpeg.org/)
+[More details see at Doug McMahon](https://launchpad.net/~mc3man/+archive/ubuntu/ffmpeg-test)
+[https://github.com/georgmartius/vid.stab](https://github.com/georgmartius/vid.stab).
