@@ -7,6 +7,10 @@ A wrapper script for ffmpeg and vidstab plugin.
 
 version 1.0
 
+Prerequisites
+-------------
+- php >= v5.6
+- ffmpeg as described below
 
 Install
 -------
