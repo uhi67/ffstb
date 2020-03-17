@@ -16,7 +16,7 @@ $argv[0] <options> <settings> <filenames>
 	-v <num>	verbose mode, 0=quiet, 1=basic, 2=detailed, 3=with ffmpeg progress
 	-o			overwrite existing results
 	-r			recurse subdirectories (if an input directory is given)
-	-k			keep temporary files
+	-k			keep temporary files (on failure, that temp file is kept)
 	-x <ext>	output file extension 
 	-s <file>	use stabilize settings from this file (default ./ffstb.set is used)
 	-f <path>	name of the ffmpeg command. Default is ffmpeg
@@ -25,10 +25,18 @@ $argv[0] <options> <settings> <filenames>
 	
 Settings in .set file
 ---------------------
-Settings are arguments in variable=value form.
+Settings are arguments in variable=value form. Calling from powershell, values containing = must be enclosed in '"="'
 Global default settings may be set in ffstb.set in the directory of the script.
 Settings for an input directory may be overridden with an ffstb.set file in it.
 Lines or line endings beginning with # are comments.
+
+Order of applying option sets:
+1. Default set file in script's directory. If not exists, burned in defaults used.
+2. Command line arguments override options individually.
+3. Set file from current directory (individually) only if no setfile option specified
+4. Set file last specified in setfile (-s) option (individually)
+
+For vidstab options see https://github.com/georgmartius/vid.stab
 
 EOT;
 $settingsheader = <<<EOT
@@ -43,7 +51,7 @@ const SET_USER=4;		// User defined options
 const SET_HIDDEN=5;
 $settings = array(
 	'help' => array(SET_SCRIPT, false, 'Display help && settings'),
-	'verbose' => array(SET_SCRIPT, 1, 'Display info & progress. 0=quiet, 1=basic (default), 2=detailed'),
+	'verbose' => array(SET_SCRIPT, 1, 'Display info & progress. 0=quiet, 1=basic (default), 2=detailed, 3=debug'),
 	'overwrite' => array(SET_SCRIPT, false, 'Overwrite existing output. May be overridden with -o in command line'),
 	'keep' => array(SET_SCRIPT, false, 'Keep temporary files. May be overridden with -k in command line'),
 	'recurse' => array(SET_SCRIPT, false, 'Recurse subdirectories. May be overridden with -r in command line'),
@@ -58,17 +66,19 @@ $settings = array(
 	'stepsize' => array(SET_DETECT, 6,	'Set stepsize of the search process.'),
 	'shakiness' => array(SET_DETECT, 8,	'Set the shakiness of input video or quickness of camera. (1-10))'),
 	'accuracy' => array(SET_DETECT, 9,	'Set the accuracy of the detection process. Range is 1-15; 1 is the lowest.'),
+	'detect' => array(SET_DETECT, '', 'Other vidstab detect options, see https://github.com/georgmartius/vid.stab.'),
 
 	'zoom' => array(SET_TRANSFORM, 0, 'Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.'),
 	'optzoom' => array(SET_TRANSFORM, 'default', 'Set optimal zooming to avoid blank-borders. 0:disabled, 1=optimal, 2=adaptive'),
 	'zoomspeed' => array(SET_TRANSFORM, 'default', 'Set percent of max zoom per frame if adaptive zoom enabled. Range is from 0 to 5, default is 0.25.'),
 	'smoothing' => array(SET_TRANSFORM, 30, 'Set the number of frames (value*2 + 1), used for lowpass filtering the camera movements.'),
+	'transform' => array(SET_TRANSFORM, '', 'Other vidstab transform options, see https://github.com/georgmartius/vid.stab.'),
 
 	'vcodec' => array(SET_FFMPEG, 'libx264', 'Video codec'),
 	'preset' => array(SET_FFMPEG, 'slow', 'Encoding options preset'),
 	'tune' => array(SET_FFMPEG, 'film', 'Fine tune settings to various inputs'),
 	'crf' => array(SET_FFMPEG, 18, 'Quality factor (0-51), 0 is the best, 17 is visually lossless'),
-	'acodec' => array(SET_FFMPEG, 'copy', 'audio codec'),
+	'acodec' => array(SET_FFMPEG, 'aac', 'audio codec'),
 	'unsharp' => array(SET_FFMPEG, '5:5:0.8:3:3:0.4', 'unsharp filter parameters, no for disable unsharp'),
 	'filter' => array(SET_USER, '', 'Additional filter with options (add multiple filter lines for more filters)'),
 	'other' => array(SET_USER, '', 'Any additional ffmpeg or codec options (will be added as -option value)'),
@@ -84,6 +94,7 @@ $setpars = array(
 );
 
 $booleans = array('true'=>true, 'false'=>false, 'yes'=>true, 'no'=>false);
+$verbose = 1;
 
 // Load default global settings from script directory
 $default_set = dirname(__FILE__).'/ffstb.set';
@@ -93,21 +104,29 @@ $filenames = array();
 
 for($i=1; $i<$argc; $i++) {
 	$p = $argv[$i];
+	
+	// variable=value options
 	if($e=strpos($p, '=')) {
-		$o = substr($p,0,$e);
-		$v = substr($p,$e+1);
-		if(substr($o,0,1)=='-') $o=substr($o,1);
+		$o = substr($p,0,$e); // Option name is substring preceding = (may be abbreviation)
+		$v = substr($p,$e+1); // Option value is the rest after =
+		if(substr($o,0,1)=='-') $o=substr($o,1); // Trim optional leading hyphen
+		$match = false;
 		foreach($settings as $k=>$vv) {
-			if(substr($k,0,strlen($o))==$o) {
+			if(substr($k,0,strlen($o))==$o) { // First matching option is used
+				$match = $k;
 				$settings[$k][1] = $v;
 				break;
 			}
 		}
+		if(!$match) echo "Unknown option `$o`\n";
 	}
+	// Abbreviated option name with a single hyphen and an optional space separated argument
 	else if(substr($p,0,1)=='-') {
 		$o = substr($p,1);
+		$match = false;
 		foreach($settings as $k=>$v) {
 			if(substr($k,0,strlen($o))==$o) {
+				$match = $k;
 				if(is_bool($v[1])) {
 					$settings[$k][1] = true;
 				}
@@ -116,26 +135,27 @@ for($i=1; $i<$argc; $i++) {
 					if(!isset($argv[$i])) { echo "Option $o needs an argument.\n"; exit; }
 					else $settings[$k][1] = $argv[$i];
 				}
-				break;
+				break; // First matching option name is used only
 			}
 		}
+		if(!$match) echo "Unknown option `$o`\n";
 	}
 	else {
 		$filenames[] = $p;
 	}
 }
 
-// Load settings from data directory
-if(file_exists($setfile = 'ffstb.set')) {
-	loadSettings($setfile);
-}
-
+$used_setfile = '';
 // Load settings from given file
 if($settings['setfile'][1]) {
 	$setfile = $settings['setfile'][1];
 	if(!file_exists($setfile)) $setfile = dirname(__FILE__).'/'.$setfile;
 	if(!file_exists($setfile)) $setfile = '';
-	if($setfile) loadSettings($setfile);
+	if($setfile) loadSettings($used_setfile = $setfile);
+} 
+// Load settings from data directory
+else if(file_exists('ffstb.set')) {
+	loadSettings($$used_setfile = 'ffstb.set');
 }
 
 // Preprocess options
@@ -164,6 +184,14 @@ if($verbose>2 || $help) {
 			}
 		}
 	}
+	echo "\nUsed setfile: `$used_setfile`\n\n";
+	if(count($filenames)) {
+		echo "\nFilenames specified:\n";
+		foreach($filenames as $filename) {
+			echo " - ", $filename, "\n";
+		}
+	}
+	else echo "\nNo filenames specified.\n\n";
 }
 
 // Collecting files by input pattern
@@ -241,10 +269,10 @@ function addFile($filename) {
 	global $options, $jobs, $verbose, $skip;
 	$trf = $options['trf'];
 	$outx = $options['xout'];
-	$outfile = $filename.'.stb.'.$outx;
+	$outfile = preg_replace('~\.(MTS|mp4|mpg|mpeg)$~', '', $filename).'.stb.'.$outx;
 	$tempfile = $filename.'.'.$trf;
 	if(file_exists($outfile) && !$options['overwrite']) {
-		if($verbose) echo "Output exists, skipping `$filename`\n";
+		if($verbose) echo "Output ($outfile) exists, skipping `$filename`\n";
 		$skip++;
 		return false;
 	}
@@ -265,7 +293,7 @@ function stabFile($filename) {
 	global $options, $verbose;
 	$trf = $options['trf'];
 	$outx = $options['xout'];
-	$outfile = $filename.'.stb.'.$outx;
+	$outfile = preg_replace('~\.(MTS|mp4|mpg|mpeg)$~', '', $filename).'.stb.'.$outx;
 	$tempfile = $filename.'.'.$trf;
 
 	if(file_exists($outfile)) {
@@ -275,18 +303,29 @@ function stabFile($filename) {
 	if(file_exists($tempfile)) unlink($tempfile);
 	if($verbose) echo "Processing `$filename`\n";
 	$ffmpeg = $options['ffmpeg'];
-	$filters = $options['filters'] ? ','.$options['filters'] : '';
-	if($options['unsharp']) $filters = ',unsharp='.$options['unsharp'];
-	$optzoom = $options['optzoom']!='default' ? 'optzoom='.$options['optzoom'].':' : '';
-	$zoomspeed = $options['zoomspeed']!='default' ? 'zoomspeed='.$options['zoomspeed'].':' : '';
 	$quiet = '';
 	if($verbose==0) $quiet = ' -loglevel fatal ';
 	if($verbose==1) $quiet = ' -loglevel error ';
 	if($verbose==2) $quiet = ' -loglevel warning ';
 	if($verbose==3) $quiet = ' -hide_banner ';
 	
-	$detectcommand = "$ffmpeg $quiet -i $filename -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile -f null -";
-	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform=input=$tempfile:zoom=${options['zoom']}:{$optzoom}{$zoomspeed}smoothing=${options['smoothing']}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} -x264-params keyint=48:no-scenecut $outfile";
+	$detectcommand = "$ffmpeg $quiet -i $filename -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile:${options['detect']} -f null -";
+	
+	// Collecting parameters form vidstabtransfom filter
+	$transfparams = ['input'=>$tempfile];
+	if($options['zoom']) $transfparams['zoom'] = $options['zoom'];
+	if($options['optzoom']!=='default') $transfparams['optzoom'] = $options['optzoom'];
+	if($options['zoomspeed']!=='default') $transfparams['zoomspeed'] = $options['zoomspeed'];
+	if($options['smoothing']) $transfparams['smoothing'] = $options['smoothing'];
+	$transfparams['maxshift']=-1;
+	$transfomx = ''; foreach($transfparams as $index=>$value) $transfomx .= ($transfomx ? ':' : '').$index.'='.$value;
+	if($options['transform']) $transfomx .= ':'.options['transform']; // Custom params
+	// Other filters
+	$filters = $options['filters'] ? ','.$options['filters'] : '';
+	if($options['unsharp']) $filters = ',unsharp='.$options['unsharp'];
+	
+	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform={$transfomx}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} -x264-params keyint=48:no-scenecut $outfile";
+	
 	$output = array();
 	if($verbose>2) echo $detectcommand."\n";
 	echo exec($detectcommand, $output), "\n";
@@ -294,16 +333,17 @@ function stabFile($filename) {
 		$output = array();
 		if($verbose>2) echo $transfcommand."\n";
 		echo exec($transfcommand, $output), "\n";
-		if(file_exists($tempfile) && !$options['keep']) unlink($tempfile);
 		if(!file_exists($outfile) || filesize($outfile)==0) {
 			echo "Failed transforming `$filename`\n";
 			return false;
 		}
+		if(file_exists($tempfile) && !$options['keep']) unlink($tempfile);
 	}
 	else {
 		echo "Failed detecting `$filename`\n";
 		return false;
 	}
+	echo "`$filename` -> `$outfile` finished\n";
 	return true;
 }
 
