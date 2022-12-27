@@ -5,7 +5,7 @@ ffmpeg batch stabilizer script
 
 A wrapper script for ffmpeg and vidstab plugin.
 
-version 1.0
+version 1.1
 
 Prerequisites
 -------------
@@ -88,36 +88,37 @@ The available settings with absolute defaults are:
 ### script settings
 
 	overwrite=no	# Overwrite existing output. May be overridden with -o in command line
-	recurse=no	# Recurse subdirectories. May be overridden with -r in command line
-	keep=no		# Keep temporary files. May be overridden with -k in command line
-	outx=mp4	# Output file extension. May be overridden with -x in command line
+	recurse=no	    # Recurse subdirectories. May be overridden with -r in command line
+	keep=no		    # Keep temporary files. May be overridden with -k in command line
+	outx=mp4	    # Output file extension. May be overridden with -x in command line
 	ffmpeg=ffmpeg	# name of ffmpeg command. May be overridden with -x in command line
-			# In ubuntu systems it may have to be 'ffmpeg2'
+			        # In ubuntu systems it may have to be 'ffmpeg2'
 	exts=avi,m2t,mov,mpg,mpeg,mp2,mp4,mts
-	threads=3	# Maximum number of paralel threads
+	threads=3	    # Maximum number of paralel threads
 
 ### detect settings
 	
-	stepsize=6	# Set stepsize of the search process. 
-	shakiness=8	# Set the shakiness of input video or quickness of camera. (1-10)
-	accuracy=9	# Set the accuracy of the detection process. It must be a value in the range 1-15. 1 is the lowest.
+	stepsize=6	    # Set stepsize of the search process. 
+	shakiness=8	    # Set the shakiness of input video or quickness of camera. (1-10)
+	accuracy=9	    # Set the accuracy of the detection process. It must be a value in the range 1-15. 1 is the lowest.
 	
 ### transform settings
 
-	zoom=1		# Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.
-	optzoom=1	# Set optimal zooming to avoid blank-borders. 0:disabled, 1=optimal, 2=adaptive
+	zoom=1		    # Set percentage to zoom. A positive value will result in a zoom-in effect. 0=noo zoom.
+	optzoom=1	    # Set optimal zooming to avoid blank-borders. 0:disabled, 1=optimal, 2=adaptive
 	zoomspeed=0.25	# Set percent of max zoom per frame if adaptive zoom enabled. Range is from 0 to 5, default is 0.25.
 	smoothing=30	# Set the number of frames (value*2 + 1), used for lowpass filtering the camera movements. 
 	
-### ffmpeg settings
+### ffmpeg and codec settings
 
 	vcodec=libx264 
 	preset=slow 	# Encoding options preset
-	tune=film	# Fine tune settings to various inputs
-	crf=17 		# Quality factor (0-51), 0 is the best, 17 is visually lossless
+	tune=film	    # Fine tune settings to various codec options (mainly the deblocking filter)
+	crf=17 		    # Quality factor (0-51), 0 is the best, 17 is visually lossless
 	acodec=mp3
+    ab              # Audio bitrate
 	unsharp=5:5:0.8:3:3:0.4		# unsharp filter luma_x:luma_y:luma_sh:chroma_x:chroma_y:chroma_sharp
-	filter		# Multiple filter options are appended to -vf option of pass 2
+	filter		    # Multiple filter options are appended to -vf option of pass 2
 
 ### User settings
 

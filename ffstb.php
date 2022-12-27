@@ -1,8 +1,8 @@
 #!/usr/bin/php
 <?php
 $title = <<<EOT
-ffsb v1.0 - ffmpeg batch stabilizer script
-==========================================
+ffstb v1.1 - ffmpeg batch stabilizer script
+===========================================
 
 EOT;
 $helptext = <<<EOT
@@ -55,7 +55,7 @@ $settings = array(
 	'overwrite' => array(SET_SCRIPT, false, 'Overwrite existing output. May be overridden with -o in command line'),
 	'keep' => array(SET_SCRIPT, false, 'Keep temporary files. May be overridden with -k in command line'),
 	'recurse' => array(SET_SCRIPT, false, 'Recurse subdirectories. May be overridden with -r in command line'),
-	'xout' => array(SET_SCRIPT, 'mp4', 'Output file extension. May be overridden with -x in command line'),
+	'xout' => array(SET_SCRIPT, 'mkv', 'Output file extension. May be overridden with -x in command line'),
 	'setfile' => array(SET_SCRIPT, '', 'Use in command line as -s filename: use stabilize settings from this file (default ./ffstb.set is used)'),
 	'ffmpeg' => array(SET_SCRIPT, 'ffmpeg', 'name of ffmpeg command. May be overridden with -f in command line'),
 	'exts' => array(SET_SCRIPT, 'avi,m2t,mov,mpg,mpeg,mp2,mp4,mts', 'Extensions to process in directories. May be overridden with -e in command line'),
@@ -75,10 +75,11 @@ $settings = array(
 	'transform' => array(SET_TRANSFORM, '', 'Other vidstab transform options, see https://github.com/georgmartius/vid.stab.'),
 
 	'vcodec' => array(SET_FFMPEG, 'libx264', 'Video codec'),
-	'preset' => array(SET_FFMPEG, 'slow', 'Encoding options preset'),
+	'preset' => array(SET_FFMPEG, 'medium', 'Encoding options preset'),
 	'tune' => array(SET_FFMPEG, 'film', 'Fine tune settings to various inputs'),
-	'crf' => array(SET_FFMPEG, 18, 'Quality factor (0-51), 0 is the best, 17 is visually lossless'),
-	'acodec' => array(SET_FFMPEG, 'aac', 'audio codec'),
+	'crf' => array(SET_FFMPEG, 20, 'Quality factor (0-51), 0 is the best, 17 is visually lossless'),
+	'acodec' => array(SET_FFMPEG, 'copy', 'audio codec'),
+	'ab' => array(SET_FFMPEG, '', 'audio bitrate'),
 	'unsharp' => array(SET_FFMPEG, '5:5:0.8:3:3:0.4', 'unsharp filter parameters, no for disable unsharp'),
 	'filter' => array(SET_USER, '', 'Additional filter with options (add multiple filter lines for more filters)'),
 	'other' => array(SET_USER, '', 'Any additional ffmpeg or codec options (will be added as -option value)'),
@@ -167,6 +168,7 @@ array_walk($options, function(&$v, $k) {$v = $v[1];});
 $verbose = $options['verbose'];
 $help = $options['help'];
 if($verbose || $help) echo $title;
+if($argc<2) echo "ffstb -h for help\n";
 // Display help
 if($help) echo $helptext;
 
@@ -301,7 +303,7 @@ function stabFile($filename) {
 		unlink($outfile);
 	}
 	if(file_exists($tempfile)) unlink($tempfile);
-	if($verbose) echo "Processing `$filename`\n";
+	if($verbose) echo "Processing `$filename` ($tempfile)\n";
 	$ffmpeg = $options['ffmpeg'];
 	$quiet = '';
 	if($verbose==0) $quiet = ' -loglevel fatal ';
@@ -309,7 +311,7 @@ function stabFile($filename) {
 	if($verbose==2) $quiet = ' -loglevel warning ';
 	if($verbose==3) $quiet = ' -hide_banner ';
 	
-	$detectcommand = "$ffmpeg $quiet -i $filename -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile:${options['detect']} -f null -";
+	$detectcommand = "$ffmpeg $quiet -i $filename -an -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile:${options['detect']} -f null -";
 	
 	// Collecting parameters form vidstabtransfom filter
 	$transfparams = ['input'=>$tempfile];
@@ -319,19 +321,21 @@ function stabFile($filename) {
 	if($options['smoothing']) $transfparams['smoothing'] = $options['smoothing'];
 	$transfparams['maxshift']=-1;
 	$transfomx = ''; foreach($transfparams as $index=>$value) $transfomx .= ($transfomx ? ':' : '').$index.'='.$value;
-	if($options['transform']) $transfomx .= ':'.options['transform']; // Custom params
+	if($options['transform']) $transfomx .= ':'.$options['transform']; // Custom params
 	// Other filters
 	$filters = $options['filters'] ? ','.$options['filters'] : '';
 	if($options['unsharp']) $filters = ',unsharp='.$options['unsharp'];
 	
-	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform={$transfomx}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} -x264-params keyint=48:no-scenecut $outfile";
+	$x264params = ''; //'-x264-params keyint=48:no-scenecut';
+	$ab = $options['ab'] ? '-ab '.$options['ab'] : '';
+	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform={$transfomx}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} $ab $x264params $outfile";
 	
 	$output = array();
-	if($verbose>2) echo $detectcommand."\n";
+	if($verbose>2) echo '<---', $detectcommand."\n";
 	echo exec($detectcommand, $output), "\n";
 	if(file_exists($tempfile)) {
 		$output = array();
-		if($verbose>2) echo $transfcommand."\n";
+		if($verbose>2) echo '--->',$transfcommand."\n";
 		echo exec($transfcommand, $output), "\n";
 		if(!file_exists($outfile) || filesize($outfile)==0) {
 			echo "Failed transforming `$filename`\n";
@@ -340,7 +344,7 @@ function stabFile($filename) {
 		if(file_exists($tempfile) && !$options['keep']) unlink($tempfile);
 	}
 	else {
-		echo "Failed detecting `$filename`\n";
+		echo "Failed detecting `$filename` ($tempfile)\n";
 		return false;
 	}
 	echo "`$filename` -> `$outfile` finished\n";

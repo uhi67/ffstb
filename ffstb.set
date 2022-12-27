@@ -6,7 +6,7 @@
 overwrite=no	# Overwrite existing output. May be overridden with -o in command line
 recurse=no		# Recurse subdirectories. May be overridden with -r in command line
 keep=no			# Keep temporary files. May be overridden with -k in command line
-xout=mp4		# Output file extension. May be overridden with -x in command line
+xout=mkv		# Output file extension. May be overridden with -x in command line
 ffmpeg=ffmpeg	# name of ffmpeg command. May be overridden with -x in command line
 				# In ubuntu systems it may have to be 'ffmpeg2'
 exts=avi,m2t,mov,mpg,mpeg,mp2,mp4,mts # Input extensions
@@ -25,13 +25,13 @@ optzoom=default		# Set optimal zooming to avoid blank-borders. 0:disabled, 1=opt
 zoomspeed=default	# Set percent of max zoom per frame if adaptive zoom enabled. Range is from 0 to 5, default is 0.25.
 smoothing=30	# Set the number of frames (value*2 + 1), used for lowpass filtering the camera movements. 
 	
-# ffmpeg settings
+# ffmpeg and codec settings
 
 vcodec=libx264 
-preset=slow 	# Encoding options preset
-tune=film 		# Fine tune settings to various inputs
-crf=17 			# Quality factor (0-51), 0 is the best, 17 is visually lossless
-acodec=copy
+preset=medium 	# Encoding options preset
+tune=film 		# Fine tune settings to various inputs (mainly the deblocking filter)
+crf=20 			# Quality factor (0-51), 0 is the best, 17 is visually lossless
+acodec=mp3
 unsharp=5:5:0.8:3:3:0.4	# unsharp filter luma_x:luma_y:luma_sh:chroma_x:chroma_y:chroma_sharp
 
 # you may set any other ffmpeg and codec options, they will be applied as -option value
