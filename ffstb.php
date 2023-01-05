@@ -293,6 +293,7 @@ function addFile($filename) {
  */
 function stabFile($filename) {
 	global $options, $verbose;
+	$filename = preg_replace('~^.\\\\~', '', $filename);
 	$trf = $options['trf'];
 	$outx = $options['xout'];
 	$outfile = preg_replace('~\.(MTS|mp4|mpg|mpeg)$~', '', $filename).'.stb.'.$outx;
