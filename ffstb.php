@@ -26,8 +26,8 @@ $argv[0] <options> <settings> <filenames>
 Settings in .set file
 ---------------------
 Settings are arguments in variable=value form. Calling from powershell, values containing = must be enclosed in '"="'
-Global default settings may be set in ffstb.set in the directory of the script.
-Settings for an input directory may be overridden with an ffstb.set file in it.
+Global default settings may be set in `ffstb.set` in the directory of the script.
+Settings for an input directory may be overridden with an `ffstb.set` file in it.
 Lines or line endings beginning with # are comments.
 
 Order of applying option sets:
@@ -108,12 +108,12 @@ for($i=1; $i<$argc; $i++) {
 	
 	// variable=value options
 	if($e=strpos($p, '=')) {
-		$o = substr($p,0,$e); // Option name is substring preceding = (may be abbreviation)
+		$o = substr($p,0,$e); // Option name is substring preceding = (can be abbreviation)
 		$v = substr($p,$e+1); // Option value is the rest after =
-		if(substr($o,0,1)=='-') $o=substr($o,1); // Trim optional leading hyphen
+		if(str_starts_with($o, '-')) $o=substr($o,1); // Trim optional leading hyphen
 		$match = false;
 		foreach($settings as $k=>$vv) {
-			if(substr($k,0,strlen($o))==$o) { // First matching option is used
+			if(str_starts_with($k, $o)) { // First matching option is used
 				$match = $k;
 				$settings[$k][1] = $v;
 				break;
@@ -122,11 +122,11 @@ for($i=1; $i<$argc; $i++) {
 		if(!$match) echo "Unknown option `$o`\n";
 	}
 	// Abbreviated option name with a single hyphen and an optional space separated argument
-	else if(substr($p,0,1)=='-') {
+	else if(str_starts_with($p, '-')) {
 		$o = substr($p,1);
 		$match = false;
 		foreach($settings as $k=>$v) {
-			if(substr($k,0,strlen($o))==$o) {
+			if(str_starts_with($k, $o)) {
 				$match = $k;
 				if(is_bool($v[1])) {
 					$settings[$k][1] = true;
@@ -149,10 +149,10 @@ for($i=1; $i<$argc; $i++) {
 $used_setfile = '';
 // Load settings from given file
 if($settings['setfile'][1]) {
-	$setfile = $settings['setfile'][1];
-	if(!file_exists($setfile)) $setfile = dirname(__FILE__).'/'.$setfile;
-	if(!file_exists($setfile)) $setfile = '';
-	if($setfile) loadSettings($used_setfile = $setfile);
+	$setFile = $settings['setfile'][1];
+	if(!file_exists($setFile)) $setFile = dirname(__FILE__).'/'.$setFile;
+	if(!file_exists($setFile)) $setFile = '';
+	if($setFile) loadSettings($used_setfile = $setFile);
 } 
 // Load settings from data directory
 else if(file_exists('ffstb.set')) {
@@ -163,7 +163,7 @@ else if(file_exists('ffstb.set')) {
 unset($settings['filter']);
 unset($settings['other']);
 $options = $settings;
-array_walk($options, function(&$v, $k) {$v = $v[1];});
+array_walk($options, function(&$v) {$v = $v[1];});
 
 $verbose = $options['verbose'];
 $help = $options['help'];
@@ -219,7 +219,7 @@ const STATUS_SKIP=4;	// file skipped (processed before this session)
 $jobs = array(); // array of [path, status, size, time] where status is STATUS_XXX
 $skip = 0;
 foreach($filenames as $filename) {
-	addFileOrDir($filename);
+	addFileOrDir($filename, $jobs);
 }
 if($verbose==1 && $skip) echo "Skipping $skip existing file(s)\n";
 
@@ -237,8 +237,12 @@ foreach($jobs as &$job) {
 if($verbose) showStat();
 exit;
 
-#--------------------------------------------------
-function addFileOrDir($filename) {
+/**
+ * @param $filename -- filename or dirname from command line parameter to collect into jobs
+ * @param-out  $jobs -- in/output array of jobs
+ * @return void
+ */
+function addFileOrDir($filename, &$jobs) {
 	global $options, $verbose;
 	$exts = explode(',', $options['exts']);
 	if(file_exists($filename)) {
@@ -251,7 +255,7 @@ function addFileOrDir($filename) {
 					if(strpos($file, '.stb.')) continue;
 					if(in_array($ext, $exts)) {
 						if(file_exists($filename.'/'.$file)) {
-							addFile($filename.'/'.$file);
+							addFile($filename.'/'.$file, $jobs);
 						}
 					}
 				}
@@ -259,7 +263,7 @@ function addFileOrDir($filename) {
 			}
 		}
 		else {
-			addFile($filename);
+			addFile($filename, $jobs);
 		}
 	}
 	else {
@@ -267,8 +271,15 @@ function addFileOrDir($filename) {
 	}
 }
 
-function addFile($filename) {
-	global $options, $jobs, $verbose, $skip;
+/**
+ * Collects job elements from input filenames from command line parameters
+ *
+ * @param $filename -- filename to add to the jobs
+ * @param-out $jobs -- in/output array of jobs
+ * @return bool
+ */
+function addFile($filename, &$jobs) {
+	global $options, $verbose, $skip;
 	$trf = $options['trf'];
 	$outx = $options['xout'];
 	$outfile = preg_replace('~\.(MTS|mp4|mpg|mpeg)$~', '', $filename).'.stb.'.$outx;
@@ -312,7 +323,7 @@ function stabFile($filename) {
 	if($verbose==2) $quiet = ' -loglevel warning ';
 	if($verbose==3) $quiet = ' -hide_banner ';
 	
-	$detectcommand = "$ffmpeg $quiet -i $filename -an -vf vidstabdetect=stepsize=${options['stepsize']}:shakiness=${options['shakiness']}:accuracy=${options['accuracy']}:result=$tempfile:${options['detect']} -f null -";
+	$detectcommand = "$ffmpeg $quiet -i $filename -an -vf vidstabdetect=stepsize={$options['stepsize']}:shakiness={$options['shakiness']}:accuracy={$options['accuracy']}:result=$tempfile:{$options['detect']} -f null -";
 	
 	// Collecting parameters form vidstabtransfom filter
 	$transfparams = ['input'=>$tempfile];
@@ -329,15 +340,13 @@ function stabFile($filename) {
 	
 	$x264params = ''; //'-x264-params keyint=48:no-scenecut';
 	$ab = $options['ab'] ? '-ab '.$options['ab'] : '';
-	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform={$transfomx}$filters -vcodec ${options['vcodec']} -preset ${options['preset']} -tune ${options['tune']} -crf ${options['crf']} -acodec ${options['acodec']} $ab $x264params $outfile";
+	$transfcommand = "$ffmpeg $quiet -i $filename -vf vidstabtransform=$transfomx$filters -vcodec {$options['vcodec']} -preset {$options['preset']} -tune {$options['tune']} -crf {$options['crf']} -acodec {$options['acodec']} $ab $x264params $outfile";
 	
-	$output = array();
 	if($verbose>2) echo '<---', $detectcommand."\n";
-	echo exec($detectcommand, $output), "\n";
+	echo exec($detectcommand), "\n";
 	if(file_exists($tempfile)) {
-		$output = array();
 		if($verbose>2) echo '--->',$transfcommand."\n";
-		echo exec($transfcommand, $output), "\n";
+		echo exec($transfcommand), "\n";
 		if(!file_exists($outfile) || filesize($outfile)==0) {
 			echo "Failed transforming `$filename`\n";
 			return false;
@@ -353,7 +362,7 @@ function stabFile($filename) {
 }
 
 function execInBackground($cmd) { 
-    if (substr(php_uname(), 0, 7) == "Windows"){ 
+    if (str_starts_with(php_uname(), "Windows")) {
         pclose(popen("start /B ". $cmd, "r"));  
     } 
     else { 
@@ -373,7 +382,7 @@ function loadSettings($filename) {
 	foreach($sf as $l) {
 		$l = trim($l);
 		$comm = '';
-		if(substr($l,0,1)=='#') continue;
+		if(str_starts_with($l, '#')) continue;
 		if(($p = strpos($l, ' #')) || ($p = strpos($l, "\t#"))) {
 			$comm = trim(substr($l, $p+2));
 			$l = trim(substr($l, 0, $p));
@@ -438,10 +447,11 @@ function showStat() {
 	
 	echo "---------------------------------------------------------------------\n";
 	if($files) echo sprintf("$ready of $files are completed (%.1f %%).\n", $ready / $files * 100);
-	else echo "No files specified or found\n";
+	else echo "No files specified or found.\n";
 	if($estimated) echo sprintf("Elapsed %s of expected %s (%.1f %%).\n", $elapsed->format('%ad %H:%I:%S'), $estint->format('%ad %H:%I:%S'), ($now->getTimestamp() - $starttime->getTimeStamp()) / $estimated * 100);
 	echo sprintf("%s of %s processed at speed %s/s\n", sizeformat($size_ready), sizeformat($size_all), sizeformat($speed));
-	if($fail) echo "$fail files failed\n";
+	if($fail) echo "$fail files failed.\n";
+	if($prog) echo "$prog files in progress.\n";
 }
 
 function sizeformat($bytes, $decimals = 1) {

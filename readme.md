@@ -5,11 +5,11 @@ ffmpeg batch stabilizer script
 
 A wrapper script for ffmpeg and vidstab plugin.
 
-version 1.1
+version 1.2
 
 Prerequisites
 -------------
-- php >= v5.6
+- php >= 8
 - ffmpeg as described below
 
 Install
